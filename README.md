@@ -6,7 +6,7 @@ Enables directional attack animations (high, low, left, right) with an onscreen 
 
 The overall design goal of this addon was to be minimally invasive to the Kit, repurposing the random attack animations with the player selected attack direction.
 
-The character controller is based on the MMORPG Kit ShooterPlayerController as was tested with Kit release 1.72c5.
+The character controller is based on the MMORPG Kit ShooterPlayerController and was tested with Kit release 1.72c5.
 
 
 ### Demo
