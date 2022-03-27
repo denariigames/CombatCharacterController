@@ -24,7 +24,6 @@ namespace MultiplayerARPG
 		protected string yRotationAxisName = "Mouse X";
 
 		bool combat_primaryAttack = false;
-		bool combat_isBlocking = false;
 		CombatAnim combatAnim = CombatAnim.Down;
 
 		// INITIALIZERS: --------------------------------------------------------------------------
@@ -44,32 +43,6 @@ namespace MultiplayerARPG
 			}
 		}
 
-		protected override void Update()
-		{
-			base.Update();
-
-			//determine if enter/exit block/crawl state
-			if (PlayerCharacterEntity.MovementState.Has(MovementState.IsGrounded))
-			{
-				if (combat_isBlocking)
-				{
-					if (!InputManager.GetButton("Crawl"))
-					{
-						Debug.Log("block ended");
-						combat_isBlocking = false;
-					}
-				}
-				else
-				{
-					if (InputManager.GetButton("Crawl"))
-					{
-						Debug.Log("block started");
-						combat_isBlocking = true;
-					}
-				}
-			}
-		}
-
 		// PUBLIC METHODS: ------------------------------------------------------------------------
 
 		public override void Attack(bool isLeftHand)
@@ -81,22 +54,6 @@ namespace MultiplayerARPG
 
 			if (PlayerCharacterEntity.Attack(isLeftHand))
 				updateAttackingCrosshair = true;
-		}
-
-		//fire2 repurposed for block
-		public override bool GetSecondaryAttackButton()
-		{
-			return false;
-		}
-
-		public virtual bool GetSecondaryAttackButtonUp()
-		{
-			return false;
-		}
-
-		public virtual bool GetSecondaryAttackButtonDown()
-		{
-			return false;
 		}
 
 		// PRIVATE METHODS: -----------------------------------------------------------------------
