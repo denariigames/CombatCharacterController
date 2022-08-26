@@ -1,7 +1,7 @@
 /**
  * DamageableEntity_Combat
  * Author: Denarii Games
- * Version: 1.0
+ * Version: 1.1
  *
  * @todo update HitBoxes on equip shield
  */
@@ -30,7 +30,7 @@ namespace MultiplayerARPG
 
 			UICombatTextString combatText = Instantiate(GameInstance.Singleton.uiCombatTextString, BaseUISceneGameplay.Singleton.combatTextTransform);
 			combatText.transform.localScale = Vector3.one;
-			combatText.CacheObjectFollower.TargetObject = this.CombatTextTransform;
+			combatText.gameObject.GetOrAddComponent<UIFollowWorldObject>().TargetObject = this.CombatTextTransform;
 			combatText.Text = text;
 			combatText.gameObject.SetActive(true);
 		}
