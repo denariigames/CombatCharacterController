@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 344339593286452572}
   - component: {fileID: 6673240881130313014}
   m_Layer: 0
-  m_Name: CombatShield
+  m_Name: Shield_Combat
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

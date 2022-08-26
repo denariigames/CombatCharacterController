@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4b67f350c4283834f81cded3a656ff5e, type: 3}
-  m_Name: CombatAdventure
+  m_Name: Adventure_Combat
   m_EditorClassIdentifier: 
   id: 
   defaultTitle: CombatAdventure

@@ -4240,7 +4240,7 @@ GameObject:
   - component: {fileID: 6183350814220640583}
   - component: {fileID: 3777728558634803962}
   m_Layer: 8
-  m_Name: CombatFemale
+  m_Name: Female_Combat
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

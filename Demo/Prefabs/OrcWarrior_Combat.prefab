@@ -1764,7 +1764,7 @@ GameObject:
   - component: {fileID: -4316304411473491760}
   - component: {fileID: 1006298236474574471}
   m_Layer: 8
-  m_Name: CombatOrcWarrior
+  m_Name: OrcWarrior_Combat
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

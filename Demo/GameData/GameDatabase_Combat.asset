@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 446bd54be72e9c14a9d92aae35e50af7, type: 3}
-  m_Name: CombatGameDatabase
+  m_Name: GameDatabase_Combat
   m_EditorClassIdentifier: 
   playerCharacterEntities:
   - {fileID: 114191363084881030, guid: 0906607e467f6d34baf8bd1a070cc694, type: 3}
@@ -29,6 +29,7 @@ MonoBehaviour:
   - {fileID: 114313543944479198, guid: d1eca4eb17ff24c48b21bda46187d90c, type: 3}
   vehicleEntities:
   - {fileID: 114414903903199864, guid: ff9787a13f67d204f9931790d6db8e1d, type: 3}
+  otherNetworkObjects: []
   attributes:
   - {fileID: 11400000, guid: cf50e3647cfae0e44b683163d2171277, type: 2}
   - {fileID: 11400000, guid: cd3d2fb4f3c67fd4dbba3bd0ccd0095e, type: 2}
@@ -167,10 +168,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ac04beb40ca9c70478d208fcfc254bea, type: 2}
   statusEffects: []
   playerCharacters:
+  - {fileID: 11400000, guid: 930494a750fac9c4f937987559142f91, type: 2}
   - {fileID: 11400000, guid: 0122f68aff58f2a4e995208bf67f18ba, type: 2}
   - {fileID: 11400000, guid: f924bc5e901d46141bb3c3ca9b6ef27a, type: 2}
   - {fileID: 11400000, guid: 8c31218a0e7c7604ea751e1a56a13a76, type: 2}
-  - {fileID: 11400000, guid: 930494a750fac9c4f937987559142f91, type: 2}
   monsterCharacters:
   - {fileID: 11400000, guid: aeba3337cf294524f8e2902f87a7532d, type: 2}
   - {fileID: 11400000, guid: 1c730dbe51ce978429028abe63e1df91, type: 2}

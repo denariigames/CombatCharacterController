@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 432ed403b30d5804bb2b9150a7426abb, type: 3}
-  m_Name: CombatMap001
+  m_Name: Map001_Combat
   m_EditorClassIdentifier: 
   id: 
   defaultTitle: 
@@ -21,13 +21,18 @@ MonoBehaviour:
   icon: {fileID: 0}
   scene:
     sceneAsset: {fileID: 102900000, guid: 64eb135780f68ea4a8ef9382c03bc0f9, type: 3}
-    sceneName: Combat-Map001
+    sceneName: Map001_Combat
   startPosition: {x: 0, y: 0, z: 10}
   startRotation: {x: 0, y: 0, z: 0}
   deadY: -100
   playerDeadDropsEquipWeapons: 0
   playerDeadDropsEquipItems: 0
   playerDeadDropsNonEquipItems: 0
+  minimapSprite: {fileID: 0}
+  minimapPosition: {x: 0, y: 0, z: 0}
+  minimapBoundsWidth: 0
+  minimapBoundsLength: 0
+  minimapOrthographicSize: 0
   canReturnToSavePoint: 0
   pvpMode: 1
   respawnPointsByCondition: []
