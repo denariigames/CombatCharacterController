@@ -6,7 +6,7 @@ Enables directional attack animations (high, low, left, right) with an onscreen 
 
 The overall design goal of this addon was to be minimally invasive to the Kit, repurposing the random attack animations with the player selected attack direction.
 
-The character controller is based on the MMORPG Kit ShooterPlayerController and was tested with Kit release 1.72c5.
+The character controller is based on the MMORPG Kit ShooterPlayerController and was tested with Kit release 1.76d2.
 
 
 ### Demo
@@ -15,15 +15,15 @@ The character controller is based on the MMORPG Kit ShooterPlayerController and 
 
 A demo is provided to showcase Combat (MMO only). You will need to first download the free asset [Melee Axe Pack](https://assetstore.unity.com/packages/3d/animations/melee-axe-pack-35320) to get the additional directional attack animations needed.
 
-1. ensure the following OneHandSword animations are referenced in Right Hand Attack Animations on the **CombatFemale** and/or **CombatFemale_CC prefabs**:
+1. ensure the following OneHandSword animations are referenced in Right Hand Attack Animations on the **Female_Combat** and/or **Female_CC_Combat prefabs**:
 - Element 0: standing_melee_attack_downward
 - Element 1: standing_melee_attack_backhand
 - Element 2: standing_melee_attack_360_high
 - Element 3: standing_melee_attack_horiztonal
 
-2. add Combat-00Init_MMO and Combat-Map001 scenes to top of **Build settings**
+2. add 00Init_MMO_Combat and Map001_Combat scenes to top of **Build settings**
 3. build and launch server
-4. run **Combat-00Init_MMO_ClientOnly** and create character with CombatFemale race
+4. run **00Init_MMO_ClientOnly_Combat** and create character with Female_Combat race
 
 
 ### Setup
