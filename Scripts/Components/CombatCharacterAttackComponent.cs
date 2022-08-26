@@ -1,13 +1,14 @@
 /**
  * CombatCharacterAttackComponent
  * Author: Denarii Games
- * Version: 1.0
+ * Version: 1.1
  *
  * Replace DefaultCharacterAttackComponent on PlayerCharacter prefab
  */
 
 using Cysharp.Threading.Tasks;
 using LiteNetLib;
+using LiteNetLib.Utils;
 using LiteNetLibManager;
 using System.Collections.Generic;
 using System.Threading;
@@ -24,7 +25,13 @@ namespace MultiplayerARPG
 		public AnimActionType AnimActionType { get; protected set; }
 		public int AnimActionDataId { get; protected set; }
 
-		protected readonly Dictionary<int, SimulatingHit> SimulatingHits = new Dictionary<int, SimulatingHit>();
+		protected readonly Dictionary<int, SimulatingActionTriggerHistory> SimulatingActionTriggerHistories = new Dictionary<int, SimulatingActionTriggerHistory>();
+		protected readonly Dictionary<int, List<SimulateActionTriggerData>> SimlatingActionTriggerDataList = new Dictionary<int, List<SimulateActionTriggerData>>();
+		protected bool sendingClientAttack;
+		protected bool sendingServerAttack;
+		protected byte sendingSeed;
+		protected bool sendingIsLeftHand;
+		protected int sendingCombatAnim;
 
 		//combat uses rigidbodymovement during animation
 		RigidBodyEntityMovement rigidBodyEntityMovement;
@@ -44,6 +51,7 @@ namespace MultiplayerARPG
 			}
 
 		}
+		//end rigidbodymovement during animation
 
 		protected virtual void SetAttackActionStates(AnimActionType animActionType, int animActionDataId)
 		{
@@ -56,50 +64,6 @@ namespace MultiplayerARPG
 		public virtual void ClearAttackStates()
 		{
 			IsAttacking = false;
-		}
-
-		public bool CallServerAttack(byte simulateSeed, bool isLeftHand, int combatAnim)
-		{
-			RPC(ServerAttack, BaseCharacterEntity.ACTION_TO_CLIENT_DATA_CHANNEL, DeliveryMethod.ReliableOrdered, simulateSeed, isLeftHand, combatAnim);
-			return true;
-		}
-
-		/// <summary>
-		/// Is function will be called at server to order character to use skill
-		/// </summary>
-		/// <param name="simulateSeed"></param>
-		/// <param name="isLeftHand"></param>
-		/// <param name="combatAnim"></param>
-		[ServerRpc]
-		protected void ServerAttack(byte simulateSeed, bool isLeftHand, int combatAnim)
-		{
-#if !CLIENT_BUILD
-			// Speed hack avoidance
-			if (Time.unscaledTime - LastAttackEndTime < -0.05f)
-			{
-				return;
-			}
-
-			// Set attack state
-			IsAttacking = true;
-
-			// Play animations
-			CallAllPlayAttackAnimation(simulateSeed, isLeftHand, combatAnim);
-#endif
-		}
-
-		public bool CallAllPlayAttackAnimation(byte simulateSeed, bool isLeftHand, int combatAnim)
-		{
-			RPC(AllPlayAttackAnimation, BaseCharacterEntity.ACTION_TO_CLIENT_DATA_CHANNEL, DeliveryMethod.ReliableOrdered, simulateSeed, isLeftHand, combatAnim);
-			return true;
-		}
-
-		[AllRpc]
-		protected void AllPlayAttackAnimation(byte simulateSeed, bool isLeftHand, int combatAnim)
-		{
-			if (IsOwnerClientOrOwnedByServer)
-				return;
-			AttackRoutine(simulateSeed, isLeftHand, combatAnim).Forget();
 		}
 
 		protected async UniTaskVoid AttackRoutine(byte simulateSeed, bool isLeftHand, int combatAnim)
@@ -185,7 +149,15 @@ namespace MultiplayerARPG
 
 				float remainsDuration = totalDuration;
 				float tempTriggerDuration;
-				SimulatingHits[simulateSeed] = new SimulatingHit(triggerDurations.Length);
+				SimulatingActionTriggerHistories[simulateSeed] = new SimulatingActionTriggerHistory(triggerDurations.Length);
+				if (SimlatingActionTriggerDataList.ContainsKey(simulateSeed))
+				{
+					foreach (SimulateActionTriggerData data in SimlatingActionTriggerDataList[simulateSeed])
+					{
+						ProceedSimulateActionTrigger(data);
+					}
+				}
+				SimlatingActionTriggerDataList.Clear();
 				for (int hitIndex = 0; hitIndex < triggerDurations.Length; ++hitIndex)
 				{
 					// Play special effects after trigger duration
@@ -228,16 +200,14 @@ namespace MultiplayerARPG
 						// Apply attack damages
 						if (IsOwnerClientOrOwnedByServer)
 						{
-							long time = BaseGameNetworkManager.Singleton.ServerTimestamp;
-							int attackSeed = unchecked(simulateSeed + (hitIndex * 16));
-							ApplyAttack(isLeftHand, weapon, damageInfo, damageAmounts, Entity.AimPosition, attackSeed, time);
-							SimulateLaunchDamageEntityData simulateData = new SimulateLaunchDamageEntityData();
+							int applySeed = unchecked(simulateSeed + (hitIndex * 16));
+							ApplyAttack(isLeftHand, weapon, damageInfo, damageAmounts, Entity.AimPosition, applySeed);
+							SimulateActionTriggerData simulateData = new SimulateActionTriggerData();
 							if (isLeftHand)
-								simulateData.state |= SimulateLaunchDamageEntityState.IsLeftHand;
+								simulateData.state |= SimulateActionTriggerState.IsLeftHand;
 							simulateData.randomSeed = simulateSeed;
 							simulateData.aimPosition = Entity.AimPosition;
-							simulateData.time = time;
-							CallAllSimulateLaunchDamageEntity(simulateData);
+							RPC(AllSimulateActionTrigger, BaseGameEntity.SERVER_STATE_DATA_CHANNEL, DeliveryMethod.ReliableOrdered, simulateData);
 						}
 					}
 
@@ -285,13 +255,12 @@ namespace MultiplayerARPG
 					rigidBodyEntityMovement.useRootMotionForMovement = rbem_useRootMotionForMovement;
 					rigidBodyEntityMovement.useRootMotionForJump = rbem_useRootMotionForJump;
 				}
-
 			}
 			// Clear action states at clients and server
 			ClearAttackStates();
 		}
 
-		protected virtual void ApplyAttack(bool isLeftHand, CharacterItem weapon, DamageInfo damageInfo, Dictionary<DamageElement, MinMaxFloat> damageAmounts, AimPosition aimPosition, int randomSeed, long? time)
+		protected virtual void ApplyAttack(bool isLeftHand, CharacterItem weapon, DamageInfo damageInfo, Dictionary<DamageElement, MinMaxFloat> damageAmounts, AimPosition aimPosition, int randomSeed)
 		{
 			if (IsServer)
 			{
@@ -329,37 +298,45 @@ namespace MultiplayerARPG
 					randomSeed,
 					aimPosition,
 					stagger,
-					out _,
-					time);
+					out _);
 			}
-		}
 
-		public bool CallAllSimulateLaunchDamageEntity(SimulateLaunchDamageEntityData data)
-		{
-			RPC(AllSimulateLaunchDamageEntity, BaseCharacterEntity.ACTION_TO_CLIENT_DATA_CHANNEL, DeliveryMethod.ReliableOrdered, data);
-			return true;
+			if (IsServer && !IsOwnerClient && !IsOwnedByServer)
+				BaseGameNetworkManager.Singleton.HitRegistrationManager.Validate(damageInfo, randomSeed, fireSpread, Entity, damageAmounts, weapon, null, 0);
 		}
 
 		[AllRpc]
-		protected void AllSimulateLaunchDamageEntity(SimulateLaunchDamageEntityData data)
+		protected void AllSimulateActionTrigger(SimulateActionTriggerData data)
 		{
 			if (IsOwnerClientOrOwnedByServer)
 				return;
-			SimulatingHit simulatingHit;
-			if (!SimulatingHits.TryGetValue(data.randomSeed, out simulatingHit) || simulatingHit.hitIndex >= simulatingHit.triggerLength)
-				return;
-			int hitIndex = SimulatingHits[data.randomSeed].hitIndex + 1;
-			simulatingHit.hitIndex = hitIndex;
-			SimulatingHits[data.randomSeed] = simulatingHit;
-			bool isLeftHand = data.state.HasFlag(SimulateLaunchDamageEntityState.IsLeftHand);
-			if (!data.state.HasFlag(SimulateLaunchDamageEntityState.IsSkill))
+			if (!ProceedSimulateActionTrigger(data))
+			{
+				if (!SimlatingActionTriggerDataList.ContainsKey(data.randomSeed))
+					SimlatingActionTriggerDataList[data.randomSeed] = new List<SimulateActionTriggerData>();
+				SimlatingActionTriggerDataList[data.randomSeed].Add(data);
+			}
+		}
+
+		protected bool ProceedSimulateActionTrigger(SimulateActionTriggerData data)
+		{
+			SimulatingActionTriggerHistory history;
+			if (!SimulatingActionTriggerHistories.TryGetValue(data.randomSeed, out history) || history.TriggeredIndex >= history.TriggerLength)
+				return false;
+			int hitIndex = SimulatingActionTriggerHistories[data.randomSeed].TriggeredIndex;
+			int applySeed = unchecked(data.randomSeed + (hitIndex * 16));
+			hitIndex++;
+			history.TriggeredIndex = hitIndex;
+			SimulatingActionTriggerHistories[data.randomSeed] = history;
+			bool isLeftHand = data.state.HasFlag(SimulateActionTriggerState.IsLeftHand);
+			if (!data.state.HasFlag(SimulateActionTriggerState.IsSkill))
 			{
 				CharacterItem weapon = Entity.GetAvailableWeapon(ref isLeftHand);
 				DamageInfo damageInfo = Entity.GetWeaponDamageInfo(weapon.GetWeaponItem());
 				Dictionary<DamageElement, MinMaxFloat> damageAmounts = Entity.GetWeaponDamagesWithBuffs(weapon);
-				int attackSeed = unchecked(data.randomSeed + (hitIndex * 16));
-				ApplyAttack(isLeftHand, weapon, damageInfo, damageAmounts, data.aimPosition, attackSeed, data.time);
+				ApplyAttack(isLeftHand, weapon, damageInfo, damageAmounts, data.aimPosition, applySeed);
 			}
+			return true;
 		}
 
 		public void CancelAttack()
@@ -374,20 +351,93 @@ namespace MultiplayerARPG
 
 		public void Attack(bool isLeftHand)
 		{
+			if (!IsServer && IsOwnerClient)
+			{
+				// Get simulate seed for simulation validating
+				byte simulateSeed = (byte)Random.Range(byte.MinValue, byte.MaxValue);
+				// Set attack state
+				IsAttacking = true;
+				// Simulate attacking at client immediately
+				AttackRoutine(simulateSeed, isLeftHand, Entity.CombatAnim).Forget();
+				// Tell server that this client attack
+				sendingClientAttack = true;
+				sendingSeed = simulateSeed;
+				sendingIsLeftHand = isLeftHand;
+				sendingCombatAnim = Entity.CombatAnim;
+			}
+			else if (IsOwnerClientOrOwnedByServer)
+			{
+				// Get simulate seed for simulation validating
+				byte simulateSeed = (byte)Random.Range(byte.MinValue, byte.MaxValue);
+				// Attack immediately at server
+				ProceedAttackStateAtServer(simulateSeed, isLeftHand, Entity.CombatAnim);
+			}
+		}
+
+		public bool WriteClientAttackState(NetDataWriter writer)
+		{
+			if (sendingClientAttack)
+			{
+				writer.Put(sendingSeed);
+				writer.Put(sendingIsLeftHand);
+				writer.Put(sendingCombatAnim);
+				sendingClientAttack = false;
+				return true;
+			}
+			return false;
+		}
+
+		public bool WriteServerAttackState(NetDataWriter writer)
+		{
+			if (sendingServerAttack)
+			{
+				writer.Put(sendingSeed);
+				writer.Put(sendingIsLeftHand);
+ 				writer.Put(sendingCombatAnim);
+ 				sendingServerAttack = false;
+				return true;
+			}
+			return false;
+		}
+
+		public void ReadClientAttackStateAtServer(NetDataReader reader)
+		{
+			byte simulateSeed = reader.GetByte();
+			bool isLeftHand = reader.GetBool();
+			int combatAnim = reader.GetInt();
+			ProceedAttackStateAtServer(simulateSeed, isLeftHand, combatAnim);
+		}
+
+		protected void ProceedAttackStateAtServer(byte simulateSeed, bool isLeftHand, int combatAnim)
+		{
+#if !CLIENT_BUILD
+			// Speed hack avoidance
+			if (Time.unscaledTime - LastAttackEndTime < -0.05f)
+				return;
 			// Set attack state
 			IsAttacking = true;
+			// Play attack animation at server immediately
+			AttackRoutine(simulateSeed, isLeftHand, combatAnim).Forget();
+			// Tell clients to play animation later
+			sendingServerAttack = true;
+			sendingSeed = simulateSeed;
+			sendingIsLeftHand = isLeftHand;
+			sendingCombatAnim = combatAnim;
+#endif
+		}
 
-			// Get simulate seed for simulation validating
-			byte simulateSeed = (byte)Random.Range(byte.MinValue, byte.MaxValue);
-
-			// Simulate attacking at client immediately
-			AttackRoutine(simulateSeed, isLeftHand, Entity.CombatAnim).Forget();
-
-			// Tell the server to attack
-			if (!IsServer)
-				CallServerAttack(simulateSeed, isLeftHand, Entity.CombatAnim);
-			else if (IsOwnerClientOrOwnedByServer)
-				CallAllPlayAttackAnimation(simulateSeed, isLeftHand, Entity.CombatAnim);
+		public void ReadServerAttackStateAtClient(NetDataReader reader)
+		{
+			byte simulateSeed = reader.GetByte();
+			bool isLeftHand = reader.GetBool();
+			int combatAnim = reader.GetInt();
+			if (IsOwnerClientOrOwnedByServer)
+			{
+				// Don't play attack animation again (it already played in `Attack` function)
+				return;
+			}
+			// Play attack animation at client
+			AttackRoutine(simulateSeed, isLeftHand, combatAnim).Forget();
 		}
 	}
 }
