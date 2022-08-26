@@ -1,7 +1,7 @@
 /**
  * UICombatTextString
  * Author: Denarii Games
- * Version: 1.0
+ * Version: 1.1
  */
 
 using UnityEngine;
@@ -21,7 +21,7 @@ namespace MultiplayerARPG
 			set
 			{
 				text = value;
-				CacheText.text = text;
+				textComponent.text = text;
 			}
 		}
 	}
